@@ -1,0 +1,423 @@
+/* ============================================================
+   front.css  —  светлая тёплая тема, современный UI
+   ============================================================ */
+
+/* ── Базовый сброс ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  color: #2c2825;
+  background: #e8e3db;
+}
+
+/* ── Переменные темы ───────────────────────────────────────── */
+:root {
+  --surface:      #f2ede6;      /* панели */
+  --surface-2:    #ece6dd;      /* вложенные секции */
+  --border:       #d4cdc4;
+  --border-light: #e2dcd4;
+  --text:         #2c2825;
+  --text-2:       #6b6560;
+  --text-3:       #9b948e;
+  --accent:       #c0622a;      /* терракота */
+  --accent-soft:  #e8d4c8;
+  --accent-2:     #4a7fa8;      /* пыльно-синий */
+  --positive:     #b34040;      /* красный заряд */
+  --negative:     #3a68a8;      /* синий заряд */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:    0 4px 12px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
+  --radius:       10px;
+  --radius-sm:    6px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   МАКЕТ
+   ══════════════════════════════════════════════════════════════
+
+   ┌─────────────────────────────────────────────────────┐  ← top (48px)
+   ├──────┬─────────────────────────────┬───────────────-┤
+   │ left │         center              │      right      │
+   │ 56px │           75%               │       25%       │
+   ├──────┴─────────────────────────────┴────────────────-┤  ← bottom (22px)
+   └─────────────────────────────────────────────────────┘
+
+   Все отступы 8px, углы плавные.
+*/
+
+.menu {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Верхняя панель ────────────────────────────────────────── */
+.top-menu {
+  top: 0; left: 0; right: 0;
+  height: 48px;
+  border-top: none; border-left: none; border-right: none;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+  background: var(--surface);
+  border-bottom-color: var(--border);
+  z-index: 10;
+}
+
+.top-menu img {
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+.top-menu .dline {
+  width: 1px; height: 24px;
+  background: var(--border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+.top-menu input[type="text"] {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  width: 90px;
+  font-size: 12px;
+  transition: border-color .15s;
+}
+.top-menu input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.top-menu input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 13px; height: 13px;
+  cursor: pointer;
+}
+
+.top-menu label {
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Селектор скорости */
+#speed {
+  position: absolute;
+  right: 12px; top: 50%; transform: translateY(-50%);
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+#speed:focus { outline: none; border-color: var(--accent); }
+#speed option { background: var(--surface); }
+
+/* ── Левая панель (инструменты) ────────────────────────────── */
+.left-menu {
+  top: calc(48px + 8px);
+  left: 0;
+  bottom: calc(22px + 8px);
+  width: 56px;
+  border-left: none;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  gap: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 5;
+}
+
+.left-menu button {
+  width: 42px; height: 42px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+  flex-shrink: 0;
+  background-size: 28px !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+}
+.left-menu button:hover {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.left-menu button.active {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+}
+.left-menu button img { display: none; } /* картинка через background */
+
+/* ── Центральная панель (canvas) ───────────────────────────── */
+.center-menu {
+  top: calc(48px + 8px);
+  left: calc(56px + 12px);
+  bottom: calc(22px + 8px);
+  width: calc(75% - 56px - 12px - 8px - 4px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  padding: 0;
+  background: #1a1f2e;  /* тёмный фон для канваса */
+  border-color: var(--border);
+}
+
+.center-menu canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Выбор файла для импорта */
+#select_file {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding: 16px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#select_file input[type="button"] {
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s, border-color .15s;
+}
+#select_file input[type="button"]:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* ── Правая панель (свойства) ──────────────────────────────── */
+.right-menu {
+  top: calc(48px + 8px);
+  right: 0;
+  bottom: calc(22px + 8px);
+  width: calc(25% - 4px);
+  border-right: none;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 5;
+}
+
+.right-menu > div {
+  border: 1px solid var(--border-light);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  line-height: 1.6;
+}
+
+.right_menu_id {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 600;
+}
+
+.right_menu_const_data {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.right-menu var {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 20px;
+  font-style: normal;
+  font-size: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid #d8b8a8;
+}
+
+.right-menu input[type="text"],
+.right-menu select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 12px;
+  width: 100%;
+  max-width: 100%;
+  transition: border-color .15s;
+}
+.right-menu input[type="text"]:focus,
+.right-menu select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.right-menu input[type="text"]:disabled {
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+.right-menu select option { background: var(--surface); }
+
+.right_menu_data {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.right_menu_data br { display: block; margin: 4px 0; content: ''; }
+
+.right_menu_buttons input[type="button"] {
+  width: 100%;
+  background: #f0e0e0;
+  color: #8b3030;
+  border: 1px solid #d8b8b8;
+  border-radius: var(--radius-sm);
+  padding: 6px 0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.right_menu_buttons input[type="button"]:hover {
+  background: #e8c8c8;
+}
+
+/* ── Нижняя панель (статус) ────────────────────────────────── */
+.bottom-menu {
+  left: 0; right: 0; bottom: 0;
+  height: 22px;
+  border-bottom: none; border-left: none; border-right: none;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 0;
+  background: var(--surface);
+  border-top-color: var(--border);
+  z-index: 10;
+}
+
+.bottom-menu > div {
+  border-left: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 0 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.bottom-menu > div:first-child { border-left: none; }
+
+/* ── Тултип поля (φ и E) ───────────────────────────────────── */
+#field_tooltip {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 8px 12px;
+  pointer-events: none;
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 160px;
+  font-size: 12px;
+}
+#field_tooltip.visible { display: flex; }
+
+.tt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tt-label {
+  color: var(--text-3);
+  font-size: 11px;
+}
+.tt-val {
+  color: var(--text);
+  font-weight: 500;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+  font-size: 11px;
+}
+
+/* ── Легенда σ ─────────────────────────────────────────────── */
+#sigma_legend {
+  position: absolute;
+  bottom: calc(22px + 16px);
+  left: calc(56px + 20px);
+  background: rgba(242,237,230,0.92);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text-2);
+  pointer-events: none;
+  display: none;
+}
+#sigma_legend.visible { display: block; }
+
+/* ── Переключатели слоёв ───────────────────────────────────── */
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.layer-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Скроллбар (правая панель) ─────────────────────────────── */
+.right-menu::-webkit-scrollbar { width: 4px; }
+.right-menu::-webkit-scrollbar-track { background: transparent; }
+.right-menu::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Анимация выбора ───────────────────────────────────────── */
+@keyframes pulse-select {
+  0%   { box-shadow: 0 0 0 0 rgba(192,98,42,0.4); }
+  70%  { box-shadow: 0 0 0 8px rgba(192,98,42,0); }
+  100% { box-shadow: 0 0 0 0 rgba(192,98,42,0); }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Электростатика — симулятор</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAABBVBMVEVHcEwEAwMAAAAHBwUAAAABAQEAAAACBAUAAAAHBgcAAAAAAAAJDRJfWUUmIhcAAAAGBQMEBAQbExEAAAAmM0IJCAkXFRkAAAAfHBQODQowLSIgGBxzZz7YxH9zbVQ9KCk4IyUAAAAGBgYfEhMQDQwWHigAAABzodwhHRA4UG9STj2qooAxKxgnJR2lkU5QRiebxPigzP90TVB/pNHgk5h9dlzbz57JuYFSaINvjLA6Sl786qCOhWJ0k7mJsODQiY/HgIVGQjR5bEFIXnlaUC5rREfo15deOj3+87nXyZLo3KjlmJ69eH2wdHnsm6GtcnetpH+xnVuxqIRihbPtnaOhYGSjbHDqwXapAAAAMHRSTlMAqW1SY4w2Bi3ZFBwj/N6b/O79Q/XI8n3UtOjj/vj+9fxzuOq/+1rV3LX7hNnhOdJsYf5LAAABUklEQVR42nWT5XLDMBCEZUcGOYbUFMaZpJjWMQcmzFh+/0ep/Lu6/an7ZndvboQgSZh0XU5GoHh7OA1SByTkajCgSjkI6I28YEg9XDBh5aWj0XDahQDL9gaeN/gi4BKdlBKBjSEg7xB7df/IS/9HSk6iBgaRLaxKiKH2nYgQLgigd0kTkEgoBajYiPtieVFmuWdvqn4YN4j21GPMFUNGSIi2H4n2XlIYQI4Wk/vxxEz2UZEVwEW6KkTjN662rcis+1WODa4S119VfclJrITJODEnh5c8Ego5VsJzvE4+j0uBehnMippGavv6g5rBzIqLsqjXa0UESLwjIhLWpTwECAWcUW3WTMa8JRMjO3JOYYTz1d2mSRzQGzfPpzD0OxIEkN/vi38KmxYEmLNby/TDDQ8B7nzmty7hDkMA519nt+u5Cn9Cx5/Pf1o0ASQ41yQYXOIPK1UkqxrNokIAAAAASUVORK5CYII=" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=0">
+  <meta name="theme-color" content="#f2ede6"/>
+  <meta content="true" name="HandheldFriendly"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Симулятор электростатических взаимодействий и проводников">
+  <meta http-equiv="Cache-Control" content="public, max-age=86400">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="front.css">
+  <script>_onload = [];</script>
+  <script src="js/menu.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/runner.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/front_events.js"></script>
+  <script src="js/right_menu.js"></script>
+</head>
+<body onload="_onload.map(x=>x())">
+
+  <!-- Верхняя панель инструментов -->
+  <div class="menu top-menu" id="top_menu"></div>
+
+  <!-- Левая панель: кнопки инструментов -->
+  <div class="menu left-menu" id="left_menu"></div>
+
+  <!-- Центральная панель: canvas -->
+  <div class="menu center-menu" id="center_menu">
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div id="select_file" style="display:none;"></div>
+  </div>
+
+  <!-- Правая панель: свойства объекта -->
+  <div class="menu right-menu" id="right_menu"></div>
+
+  <!-- Нижняя строка статуса -->
+  <div class="menu bottom-menu" id="bottom_menu">
+    <div id="transformed-mouse-pos">Мир: —</div>
+    <div id="mouse-pos">Экран: —</div>
+    <div id="fps"></div>
+  </div>
+
+  <!-- Тултип: φ и E в точке мыши (позиционируется через JS) -->
+  <div id="field_tooltip"></div>
+
+  <!-- Легенда σ -->
+  <div id="sigma_legend">
+    <span style="color:#b34040">■</span> σ &gt; 0 &nbsp;
+    <span style="color:#3a68a8">■</span> σ &lt; 0
+  </div>
+
+  <script>
+    // Позиционируем тултип рядом с курсором
+    document.getElementById('canvas') && document.addEventListener('mousemove', function(ev) {
+      var tt = document.getElementById('field_tooltip');
+      if (!tt) return;
+      var x = ev.clientX + 16, y = ev.clientY + 16;
+      // Не выходить за правый и нижний края
+      if (x + 180 > window.innerWidth)  x = ev.clientX - 180;
+      if (y + 100 > window.innerHeight) y = ev.clientY - 100;
+      tt.style.left = x + 'px';
+      tt.style.top  = y + 'px';
+      tt.classList.add('visible');
+    });
+    document.addEventListener('mouseleave', function() {
+      var tt = document.getElementById('field_tooltip');
+      if (tt) tt.classList.remove('visible');
+    });
+  </script>
+</body>
+</html>
