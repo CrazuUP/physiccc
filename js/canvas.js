@@ -125,7 +125,9 @@ _onload.push(() => {
   const tooltip_el = document.getElementById('field_tooltip');
   const colorbar_el = document.getElementById('potential_colorbar');
   const colorbar_min_el = document.getElementById('potential_colorbar_min');
+  const colorbar_neg_mid_el = document.getElementById('potential_colorbar_neg_mid');
   const colorbar_mid_el = document.getElementById('potential_colorbar_mid');
+  const colorbar_pos_mid_el = document.getElementById('potential_colorbar_pos_mid');
   const colorbar_max_el = document.getElementById('potential_colorbar_max');
   const colorbar_range_el = document.getElementById('potential_colorbar_range');
   ctx.imageSmoothingEnabled = false;
@@ -145,6 +147,28 @@ _onload.push(() => {
     if (a >= 1) return v.toFixed(3);
     if (a >= 1e-3) return (v * 1e3).toFixed(2) + 'm';
     return v.toExponential(2);
+  }
+
+  function trimZeros(text) {
+    return text.replace(/\.0+($|[a-zA-ZА-Яа-я])/g, '$1').replace(/(\.\d*?)0+($|[a-zA-ZА-Яа-я])/g, '$1$2');
+  }
+
+  function formatMetricCompact(v) {
+    var a = Math.abs(v);
+    if (a === 0) return '0';
+    if (a >= 1e9) return trimZeros((v / 1e9).toFixed(a >= 1e11 ? 0 : 1) + 'G');
+    if (a >= 1e6) return trimZeros((v / 1e6).toFixed(a >= 1e8 ? 0 : 1) + 'M');
+    if (a >= 1e3) return trimZeros((v / 1e3).toFixed(a >= 1e5 ? 0 : 1) + 'k');
+    if (a >= 100) return v.toFixed(0);
+    if (a >= 10) return trimZeros(v.toFixed(1));
+    if (a >= 1) return trimZeros(v.toFixed(2));
+    if (a >= 1e-3) return trimZeros((v * 1e3).toFixed(a >= 0.1 ? 0 : 1) + 'm');
+    return v.toExponential(1);
+  }
+
+  function formatPotentialTick(v) {
+    var sign = v > 0 ? '+' : '';
+    return sign + formatMetricCompact(v);
   }
 
   function getPotentialColor(pn, alpha) {
@@ -171,10 +195,12 @@ _onload.push(() => {
       '--potential-scale',
       `linear-gradient(90deg, ${getPotentialColorCss(-1, 220)} 0%, ${getPotentialColorCss(0, 220)} 50%, ${getPotentialColorCss(1, 220)} 100%)`
     );
-    if (colorbar_min_el) colorbar_min_el.textContent = '-' + formatMetric(p_max) + ' В';
+    if (colorbar_min_el) colorbar_min_el.textContent = formatPotentialTick(-p_max);
+    if (colorbar_neg_mid_el) colorbar_neg_mid_el.textContent = formatPotentialTick(-p_max / 2);
     if (colorbar_mid_el) colorbar_mid_el.textContent = '0';
-    if (colorbar_max_el) colorbar_max_el.textContent = '+' + formatMetric(p_max) + ' В';
-    if (colorbar_range_el) colorbar_range_el.textContent = 'диапазон: ±' + formatMetric(p_max) + ' В';
+    if (colorbar_pos_mid_el) colorbar_pos_mid_el.textContent = formatPotentialTick(p_max / 2);
+    if (colorbar_max_el) colorbar_max_el.textContent = formatPotentialTick(p_max);
+    if (colorbar_range_el) colorbar_range_el.textContent = '±' + formatMetricCompact(p_max) + ' В';
   }
 
   function getTransformed(ox, oy) {

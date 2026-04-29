@@ -408,10 +408,12 @@ html, body {
     rgba(197, 98, 82, 0.92) 78%,
     rgba(171, 55, 62, 0.92) 100%
   );
-  position: absolute;
+  position: fixed;
   bottom: calc(22px + 16px);
-  right: 20px;
-  min-width: 248px;
+  left: calc(56px + 24px);
+  width: min(460px, calc(75vw - 88px));
+  min-width: 240px;
+  max-width: calc(100vw - 116px);
   background: rgba(242,237,230,0.88);
   border: 1px solid rgba(92, 82, 72, 0.26);
   border-radius: 10px;
@@ -431,11 +433,13 @@ html, body {
   gap: 8px;
   font-size: 11px;
   margin-bottom: 6px;
+  white-space: nowrap;
 }
 .potential_colorbar_title > span:last-child {
   font-size: 10px;
   opacity: 0.86;
   font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+  color: var(--text);
 }
 .potential_colorbar_scale {
   position: relative;
@@ -456,14 +460,59 @@ html, body {
   background: rgba(245, 240, 232, 0.9);
   box-shadow: 0 0 0 1px rgba(30,20,15,0.16);
 }
+.potential_colorbar_scale::before {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+  background:
+    linear-gradient(90deg,
+      rgba(35,28,22,0.28) 0 1px,
+      transparent 1px calc(25% - 1px),
+      rgba(35,28,22,0.28) calc(25% - 1px) 25%,
+      transparent 25% calc(50% - 1px),
+      rgba(35,28,22,0.28) calc(50% - 1px) 50%,
+      transparent 50% calc(75% - 1px),
+      rgba(35,28,22,0.28) calc(75% - 1px) 75%,
+      transparent 75% calc(100% - 1px),
+      rgba(35,28,22,0.28) calc(100% - 1px) 100%);
+  pointer-events: none;
+}
 .potential_colorbar_ticks {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
   margin-top: 7px;
   font-family: 'JetBrains Mono', 'Fira Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.01em;
+  font-size: 9px;
+  letter-spacing: 0;
+}
+.potential_colorbar_ticks span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.potential_colorbar_ticks span:nth-child(1) { text-align: left; }
+.potential_colorbar_ticks span:nth-child(2),
+.potential_colorbar_ticks span:nth-child(3),
+.potential_colorbar_ticks span:nth-child(4) { text-align: center; }
+.potential_colorbar_ticks span:nth-child(5) { text-align: right; }
+
+@media (max-width: 620px) {
+  #potential_colorbar {
+    left: calc(56px + 20px);
+    right: auto;
+    width: calc(100vw - 170px);
+    min-width: 210px;
+    padding: 8px 9px;
+  }
+  .potential_colorbar_title {
+    font-size: 10px;
+  }
+  .potential_colorbar_title > span:last-child,
+  .potential_colorbar_ticks {
+    font-size: 8px;
+  }
 }
 
 /* ── Переключатели слоёв ───────────────────────────────────── */
@@ -481,6 +530,83 @@ html, body {
   accent-color: var(--accent);
   cursor: pointer;
 }
+.layers-menu-btn {
+  height: 30px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.layers-menu-btn:hover,
+.layers-menu-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.layers-menu-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+#layers_active_count {
+  min-width: 28px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+}
+.layers-panel {
+  position: fixed;
+  top: 54px;
+  left: 76px;
+  width: min(280px, calc(100vw - 92px));
+  z-index: 90;
+  display: none;
+  background: rgba(242,237,230,0.97);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  padding: 10px;
+}
+.layers-panel.visible { display: block; }
+.layers-panel-title {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin: 0 0 8px;
+}
+.layers-panel-list {
+  display: grid;
+  gap: 5px;
+}
+.layers-panel-row {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+.layers-panel-row:hover {
+  background: var(--surface-2);
+}
+.layers-panel-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
 .history-actions {
   display: flex;
   gap: 6px;
@@ -491,8 +617,11 @@ html, body {
   background: var(--surface);
   color: var(--text);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 12px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
 }
 .history-btn:hover {

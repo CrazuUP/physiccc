@@ -182,6 +182,70 @@ var menu_info = [
 // ── Состояние меню ──────────────────────────────────────────────────────────
 var menu = { selected: -1, info: menu_info, on_change: [], value_of_save_id: {} };
 
+var layer_menu_specs = [
+  { key: 'force_lines',         label: 'Силовые линии',       title: 'Линии поля, интегрированные по вектору E' },
+  { key: 'equipotential_lines', label: 'Эквипотенциали',      title: 'Контурные линии одинакового потенциала' },
+  { key: 'potential_map',       label: 'Карта потенциалов φ', title: 'Цветовая карта потенциала φ' },
+  { key: 'field_arrows',        label: 'Стрелки E→',          title: 'Стрелки вектора напряжённости E' },
+  { key: 'conductors',          label: 'Проводники',          title: 'Геометрия проводников' },
+  { key: 'charges',             label: 'Заряды',              title: 'Точечные заряды' },
+  { key: 'sigma',               label: 'Плотность σ',         title: 'Поверхностная плотность заряда σ на проводниках' },
+];
+
+function update_layers_button_state() {
+  if (typeof canvas_events === 'undefined') return;
+  var count_el = document.getElementById('layers_active_count');
+  if (!count_el) return;
+  var active = layer_menu_specs.filter(spec => !!canvas_events.layers[spec.key]).length;
+  count_el.textContent = active + '/' + layer_menu_specs.length;
+}
+
+function set_canvas_layer(key, value) {
+  canvas_events.layers[key] = value;
+  canvas_events.sync_layer_ui();
+  canvas_events.need_repaint();
+  update_layers_button_state();
+}
+
+function render_layers_panel() {
+  var panel = document.getElementById('layers_panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'layers_panel';
+    panel.className = 'layers-panel';
+    document.body.appendChild(panel);
+  }
+
+  panel.innerHTML =
+    '<div class="layers-panel-title">Слои</div>' +
+    '<div class="layers-panel-list">' +
+      layer_menu_specs.map(function(spec) {
+        return '<label class="layers-panel-row" title="' + spec.title + '">' +
+          '<input type="checkbox"' + (canvas_events.layers[spec.key] ? ' checked' : '') +
+          ' onchange="set_canvas_layer(\'' + spec.key + '\', this.checked)">' +
+          '<span>' + spec.label + '</span>' +
+        '</label>';
+      }).join('') +
+    '</div>';
+}
+
+function toggle_layers_panel(ev) {
+  if (ev) ev.stopPropagation();
+  render_layers_panel();
+  var panel = document.getElementById('layers_panel');
+  var button = document.getElementById('layers_menu_btn');
+  var visible = !panel.classList.contains('visible');
+  panel.classList.toggle('visible', visible);
+  if (button) button.classList.toggle('active', visible);
+}
+
+function close_layers_panel() {
+  var panel = document.getElementById('layers_panel');
+  var button = document.getElementById('layers_menu_btn');
+  if (panel) panel.classList.remove('visible');
+  if (button) button.classList.remove('active');
+}
+
 // ── Инициализация левой панели ──────────────────────────────────────────────
 _onload.push(function() {
 
@@ -217,6 +281,19 @@ _onload.push(function() {
 
 _onload.push(function() { select_menu_item(0); });
 
+_onload.push(function() {
+  document.addEventListener('click', function(ev) {
+    var panel = document.getElementById('layers_panel');
+    var button = document.getElementById('layers_menu_btn');
+    if (!panel || !panel.classList.contains('visible')) return;
+    if (panel.contains(ev.target) || (button && button.contains(ev.target))) return;
+    close_layers_panel();
+  });
+  document.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape') close_layers_panel();
+  });
+});
+
 // ── Переключение инструмента ────────────────────────────────────────────────
 function select_menu_item(i) {
   if (menu.selected === i) return;
@@ -231,31 +308,18 @@ function select_menu_item(i) {
 
   menu.selected = i;
   var item = menu_info[i];
-  var L = canvas_events.layers;
-  function layerToggle(key, label, title, extra) {
-    return '<label class="layer-toggle" title="' + title + '">' +
-      '<input type="checkbox"' + (L[key] ? ' checked' : '') +
-      ' onchange="canvas_events.layers.' + key + '=this.checked;' +
-      (extra || '') +
-      'canvas_events.sync_layer_ui();canvas_events.need_repaint()">' + label +
-      '</label>';
-  }
 
   // Переключатели слоёв
   var layers_html =
       '<div class="dline"></div>' +
-      layerToggle('potential_map', ' φ-карта', 'Цветовая карта потенциала φ') +
-      layerToggle('equipotential_lines', ' Эквипотенциали', 'Контурные линии одинакового потенциала') +
-      layerToggle('field_arrows', ' Стрелки E', 'Стрелки вектора напряжённости E') +
-      layerToggle('force_lines', ' Силовые линии', 'Линии поля, интегрированные по вектору E') +
-      layerToggle('conductors', ' Проводники', 'Геометрия проводников') +
-      layerToggle('charges', ' Заряды', 'Точечные заряды') +
-      layerToggle('sigma', ' σ', 'Поверхностная плотность заряда σ на проводниках');
+      '<button type="button" id="layers_menu_btn" class="layers-menu-btn" onclick="toggle_layers_panel(event)" title="Показать/скрыть слои">' +
+      '<span class="layers-menu-icon">☰</span><span>Слои</span><span id="layers_active_count"></span>' +
+      '</button>';
 
   var history_html =
       '<div class="history-actions">' +
-      '<button type="button" id="history_undo_btn" class="history-btn" onclick="canvas_events.history.undo()" title="Отменить (Ctrl+Z)">↶ Отменить</button>' +
-      '<button type="button" id="history_redo_btn" class="history-btn" onclick="canvas_events.history.redo()" title="Повторить (Ctrl+Y / Ctrl+Shift+Z)">↷ Повторить</button>' +
+      '<button type="button" id="history_undo_btn" class="history-btn" onclick="canvas_events.history.undo()" title="Отменить (Ctrl+Z)">↶</button>' +
+      '<button type="button" id="history_redo_btn" class="history-btn" onclick="canvas_events.history.redo()" title="Повторить (Ctrl+Y / Ctrl+Shift+Z)">↷</button>' +
       '</div>';
 
   // Параметры инструмента
@@ -274,8 +338,8 @@ function select_menu_item(i) {
   top_menu.innerHTML =
       '<img src="' + item.src + '" title="' + item.title + '" style="opacity:.85">' +
       tool_html +
-      layers_html +
       history_html +
+      layers_html +
       '<select id="speed" onchange="speed_change()" title="Скорость симуляции">' + speed_opts + '</select>';
 
   setTimeout(function() {
@@ -290,6 +354,8 @@ function select_menu_item(i) {
       btn.classList.toggle('active', idx === i);
     });
     if (canvas_events.history) canvas_events.history.updateControls();
+    render_layers_panel();
+    update_layers_button_state();
     menu.on_change.forEach(function(fn) { fn(); });
   });
 }
