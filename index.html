@@ -54,6 +54,20 @@
     <span style="color:#3a68a8">■</span> σ &lt; 0
   </div>
 
+  <!-- Шкала потенциала -->
+  <div id="potential_colorbar">
+    <div class="potential_colorbar_title">
+      <span>Потенциал φ</span>
+      <span id="potential_colorbar_range">диапазон: ±1 В</span>
+    </div>
+    <div class="potential_colorbar_scale"></div>
+    <div class="potential_colorbar_ticks">
+      <span id="potential_colorbar_min">-1 В</span>
+      <span id="potential_colorbar_mid">0</span>
+      <span id="potential_colorbar_max">+1 В</span>
+    </div>
+  </div>
+
   <script>
     // Позиционируем тултип рядом с курсором
     document.getElementById('canvas') && document.addEventListener('mousemove', function(ev) {

@@ -394,6 +394,74 @@ html, body {
 }
 #sigma_legend.visible { display: block; }
 
+/* ── Colorbar потенциала ───────────────────────────────────── */
+#potential_colorbar {
+  --potential-scale: linear-gradient(
+    90deg,
+    rgba(44, 93, 166, 0.92) 0%,
+    rgba(70, 126, 210, 0.92) 22%,
+    rgba(102, 96, 87, 0.9) 50%,
+    rgba(197, 98, 82, 0.92) 78%,
+    rgba(171, 55, 62, 0.92) 100%
+  );
+  position: absolute;
+  bottom: calc(22px + 16px);
+  right: 20px;
+  min-width: 248px;
+  background: rgba(242,237,230,0.88);
+  border: 1px solid rgba(92, 82, 72, 0.26);
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(60, 46, 34, 0.14), inset 0 1px 0 rgba(255,255,255,0.35);
+  backdrop-filter: blur(4px);
+  padding: 9px 11px;
+  font-size: 11px;
+  color: var(--text-2);
+  pointer-events: none;
+  display: none;
+}
+#potential_colorbar.visible { display: block; }
+.potential_colorbar_title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.potential_colorbar_title > span:last-child {
+  font-size: 10px;
+  opacity: 0.86;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+}
+.potential_colorbar_scale {
+  position: relative;
+  height: 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.16);
+  background: var(--potential-scale);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+}
+.potential_colorbar_scale::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 1px;
+  height: calc(100% + 4px);
+  transform: translateX(-50%);
+  background: rgba(245, 240, 232, 0.9);
+  box-shadow: 0 0 0 1px rgba(30,20,15,0.16);
+}
+.potential_colorbar_ticks {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
+
 /* ── Переключатели слоёв ───────────────────────────────────── */
 .layer-toggle {
   display: flex;
@@ -408,6 +476,23 @@ html, body {
 .layer-toggle input[type="checkbox"] {
   accent-color: var(--accent);
   cursor: pointer;
+}
+.history-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.history-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.history-btn:hover {
+  background: var(--surface-2);
 }
 
 /* ── Скроллбар (правая панель) ─────────────────────────────── */

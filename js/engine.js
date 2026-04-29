@@ -149,11 +149,14 @@ var engine_info = (()=>{
       }
     }
 
-    // Проверка: суммарный индуцированный заряд должен быть ~0
-    // (применяем простую коррекцию, чтобы ∑q = 0)
+    // Коррекция суммарного заряда: по умолчанию нейтральный проводник,
+    // но можно задать Q_total (в единицах e) для заряженного проводника.
+    var target_qsum = Number.isFinite(conductor_entity.Q_total)
+      ? conductor_entity.Q_total
+      : 0;
     var qsum = 0;
     for (var i = 0; i < n; i++) qsum += q[i];
-    var correction = qsum / n;
+    var correction = (qsum - target_qsum) / n;
     for (var i = 0; i < n; i++) q[i] -= correction;
 
     // Собираем результат: [{x, y, q, sigma, ds, nx, ny}]

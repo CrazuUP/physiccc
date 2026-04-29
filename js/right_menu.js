@@ -19,6 +19,7 @@ var right_menu_h = {
   // ── Синхронизация данных с DOM ────────────────────────────────────────
   change_info: (read_only_mode) => {
     // read_only_mode=true: только обновляем дисплей (во время симуляции)
+    var before_state = read_only_mode === true ? null : canvas_events.history.serializeState();
     var get  = id => { var el = document.getElementById(id); return el ? el.value : null; };
     var set  = (id, v) => { var el = document.getElementById(id); if (el) el.value = v; };
     var sync = (id, obj, key, always_readonly) => {
@@ -64,11 +65,17 @@ var right_menu_h = {
       } else if (obj.type === 'p') {
         var data_len = { circle:3, rectangle:4, ring:4 }[obj.shape] || 4;
         for (var k = 0; k < data_len; k++) sync('rm_d' + k, obj.data, k);
+        if (!Number.isFinite(obj.Q_total)) obj.Q_total = 0;
+        sync('rm_p_qtotal', obj, 'Q_total');
       }
     }
 
     if (read_only_mode !== true) {
+      var after_state = canvas_events.history.serializeState();
+      if (!canvas_events.history.statesEqual(before_state, after_state))
+        canvas_events.history.push(before_state);
       engine_info.change();
+      canvas_events.after_scene_change();
       canvas_events.need_repaint();
     }
   },
@@ -129,6 +136,7 @@ var right_menu_h = {
         `Форма: <var>${shape_name}</var></div>` +
         `<div class="right_menu_data">` +
           labels.map((l, k) => inp('rm_d'+k, l)).join('') +
+          inp('rm_p_qtotal', 'Суммарный заряд проводника Q') +
         `</div>`;
 
       // Показываем статистику BEM-зарядов
@@ -140,6 +148,7 @@ var right_menu_h = {
         html +=
           `<div class="right_menu_const_data" style="font-size:11px;margin-top:4px">` +
           `BEM-сегменты: ${segs.length}<br>` +
+          `Q заданный = ${(Number.isFinite(obj.Q_total) ? obj.Q_total : 0).toExponential(2)} e<br>` +
           `∑q инд. = ${q_sum.toExponential(2)}<br>` +
           `|σ|_max = ${s_max.toExponential(2)} e/м` +
           `</div>`;
@@ -157,8 +166,10 @@ var right_menu_h = {
   // ── Удаление ─────────────────────────────────────────────────────────
   remove: () => {
     var id = right_menu_h.id;
+    canvas_events.history.push();
     engine_info.set_entities(engine_info.get_entities().filter((_, i) => i !== id));
     canvas_events.selected_entity = -1;
+    engine_info.change();
     canvas_events.need_repaint();
     right_menu_h.update_entity();
   },

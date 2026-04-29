@@ -21,6 +21,7 @@ function is_valid_float(s) {
 function place_charge(x, y, sign, q_id, m_id, const_id, count_id) {
   var n = Math.max(1, Math.round(parseFloat(document.getElementById(count_id).value)));
   var q = sign * Math.abs(parseFloat(document.getElementById(q_id).value));
+  canvas_events.history.push();
   for (var i = 0; i < n; i++) {
     engine_info.set_entities(engine_info.get_entities().concat([{
       type: 'q',
@@ -112,9 +113,11 @@ var menu_info = [
     canvas_click: function(x, y) {
       var w = parseFloat(document.getElementById('menu_pr_w').value);
       var h = parseFloat(document.getElementById('menu_pr_h').value);
+      canvas_events.history.push();
       engine_info.set_entities(engine_info.get_entities().concat([{
         type: 'p', shape: 'rectangle',
-        data: [x - w / 2, y - h / 2, w, h]
+        data: [x - w / 2, y - h / 2, w, h],
+        Q_total: 0
       }]));
     }
   },
@@ -127,9 +130,11 @@ var menu_info = [
     save_id: ['menu_pc_r'],
     canvas_click_check_float_id: ['menu_pc_r'],
     canvas_click: function(x, y) {
+      canvas_events.history.push();
       engine_info.set_entities(engine_info.get_entities().concat([{
         type: 'p', shape: 'circle',
-        data: [x, y, parseFloat(document.getElementById('menu_pc_r').value)]
+        data: [x, y, parseFloat(document.getElementById('menu_pc_r').value)],
+        Q_total: 0
       }]));
     }
   },
@@ -145,11 +150,13 @@ var menu_info = [
     save_id: ['menu_pk_r1', 'menu_pk_r2'],
     canvas_click_check_float_id: ['menu_pk_r1', 'menu_pk_r2'],
     canvas_click: function(x, y) {
+      canvas_events.history.push();
       engine_info.set_entities(engine_info.get_entities().concat([{
         type: 'p', shape: 'ring',
         data: [x, y,
           parseFloat(document.getElementById('menu_pk_r1').value),
-          parseFloat(document.getElementById('menu_pk_r2').value)]
+          parseFloat(document.getElementById('menu_pk_r2').value)],
+        Q_total: 0
       }]));
     }
   },
@@ -225,24 +232,31 @@ function select_menu_item(i) {
   menu.selected = i;
   var item = menu_info[i];
   var L = canvas_events.layers;
+  function layerToggle(key, label, title, extra) {
+    return '<label class="layer-toggle" title="' + title + '">' +
+      '<input type="checkbox"' + (L[key] ? ' checked' : '') +
+      ' onchange="canvas_events.layers.' + key + '=this.checked;' +
+      (extra || '') +
+      'canvas_events.sync_layer_ui();canvas_events.need_repaint()">' + label +
+      '</label>';
+  }
 
   // Переключатели слоёв
   var layers_html =
       '<div class="dline"></div>' +
-      '<label class="layer-toggle" title="Цветовая карта потенциала φ">' +
-      '<input type="checkbox"' + (L.potential_map ? ' checked' : '') +
-      ' onchange="canvas_events.layers.potential_map=this.checked;canvas_events.need_repaint()"> φ-карта' +
-      '</label>' +
-      '<label class="layer-toggle" title="Стрелки вектора напряжённости E">' +
-      '<input type="checkbox"' + (L.field_arrows ? ' checked' : '') +
-      ' onchange="canvas_events.layers.field_arrows=this.checked;canvas_events.need_repaint()"> Стрелки E' +
-      '</label>' +
-      '<label class="layer-toggle" title="Поверхностная плотность заряда σ на проводниках">' +
-      '<input type="checkbox"' + (L.sigma ? ' checked' : '') +
-      ' onchange="canvas_events.layers.sigma=this.checked;' +
-      'document.getElementById(\'sigma_legend\').classList.toggle(\'visible\',this.checked);' +
-      'canvas_events.need_repaint()"> σ' +
-      '</label>';
+      layerToggle('potential_map', ' φ-карта', 'Цветовая карта потенциала φ') +
+      layerToggle('equipotential_lines', ' Эквипотенциали', 'Контурные линии одинакового потенциала') +
+      layerToggle('field_arrows', ' Стрелки E', 'Стрелки вектора напряжённости E') +
+      layerToggle('force_lines', ' Силовые линии', 'Линии поля, интегрированные по вектору E') +
+      layerToggle('conductors', ' Проводники', 'Геометрия проводников') +
+      layerToggle('charges', ' Заряды', 'Точечные заряды') +
+      layerToggle('sigma', ' σ', 'Поверхностная плотность заряда σ на проводниках');
+
+  var history_html =
+      '<div class="history-actions">' +
+      '<button type="button" class="history-btn" onclick="canvas_events.history.undo()" title="Отменить (Ctrl+Z)">↶ Undo</button>' +
+      '<button type="button" class="history-btn" onclick="canvas_events.history.redo()" title="Повторить (Ctrl+Y / Ctrl+Shift+Z)">↷ Redo</button>' +
+      '</div>';
 
   // Параметры инструмента
   var tool_html = item.html
@@ -261,6 +275,7 @@ function select_menu_item(i) {
       '<img src="' + item.src + '" title="' + item.title + '" style="opacity:.85">' +
       tool_html +
       layers_html +
+      history_html +
       '<select id="speed" onchange="speed_change()" title="Скорость симуляции">' + speed_opts + '</select>';
 
   setTimeout(function() {
@@ -296,9 +311,11 @@ function export_scene() {
 function import_scene_text(text) {
   try {
     var obj = JSON.parse(text);
+    canvas_events.history.push();
     engine_info.set_entities(obj.e);
     canvas_events.set_canvas_state(obj.canvas);
     engine_info.change();
+    canvas_events.after_scene_change();
   } catch (err) {
     alert('Ошибка загрузки файла:\n' + err.message);
   }
