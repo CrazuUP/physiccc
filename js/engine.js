@@ -119,7 +119,8 @@ var engine_info = (()=>{
       A.push(new Float64Array(n));
       for (var j = 0; j < n; j++) {
         if (i === j) {
-          A[i][j] = constants.eps * constants.e / (pts[j].ds * 0.25);
+          var self_r = Math.max(pts[j].ds * constants.scale * 0.25, 1e-9);
+          A[i][j] = constants.eps * constants.e / self_r;
         } else {
           var dx = (pts[i].x - pts[j].x) * constants.scale;
           var dy = (pts[i].y - pts[j].y) * constants.scale;
@@ -129,35 +130,50 @@ var engine_info = (()=>{
       }
     }
 
-    // Целевой потенциал проводника — среднее φ_ext (незаряженный проводник,
-    // полный индуцированный заряд = 0)
-    var phi_target = conductor_entity.V_conductor !== undefined
-      ? conductor_entity.V_conductor
-      : phi_ext.reduce((a,b)=>a+b,0)/n;
-
-    // Правая часть: b[i] = phi_target - phi_ext[i]
-    var b = new Float64Array(n);
-    for (var i = 0; i < n; i++) b[i] = phi_target - phi_ext[i];
-
-    // Гаусс-Зейдель (20 итераций — хватает для визуализации)
-    var q = new Float64Array(n); // начальное приближение = 0
-    for (var iter = 0; iter < 20; iter++) {
-      for (var i = 0; i < n; i++) {
-        var s = b[i];
-        for (var j = 0; j < n; j++) if (j !== i) s -= A[i][j]*q[j];
-        q[i] = s / A[i][i];
+    // Потенциал проводника подбирается так, чтобы поверхность была
+    // эквипотенциальной и суммарный заряд совпадал с Q_total.
+    function gaussSeidelSolve(b) {
+      var q = new Float64Array(n);
+      for (var iter = 0; iter < 36; iter++) {
+        for (var i = 0; i < n; i++) {
+          var s = b[i];
+          for (var j = 0; j < n; j++) if (j !== i) s -= A[i][j]*q[j];
+          q[i] = s / A[i][i];
+        }
       }
+      return q;
     }
 
-    // Коррекция суммарного заряда: по умолчанию нейтральный проводник,
-    // но можно задать Q_total (в единицах e) для заряженного проводника.
+    var b_base = new Float64Array(n);
+    var b_unit = new Float64Array(n);
+    for (var i = 0; i < n; i++) {
+      b_base[i] = -phi_ext[i];
+      b_unit[i] = 1;
+    }
+
+    var q_base = gaussSeidelSolve(b_base);
+    var q_unit = gaussSeidelSolve(b_unit);
     var target_qsum = Number.isFinite(conductor_entity.Q_total)
       ? conductor_entity.Q_total
       : 0;
-    var qsum = 0;
-    for (var i = 0; i < n; i++) qsum += q[i];
-    var correction = (qsum - target_qsum) / n;
-    for (var i = 0; i < n; i++) q[i] -= correction;
+    var base_sum = 0, unit_sum = 0;
+    for (var i = 0; i < n; i++) {
+      base_sum += q_base[i];
+      unit_sum += q_unit[i];
+    }
+
+    var phi_target = Number.isFinite(conductor_entity.V_conductor)
+      ? conductor_entity.V_conductor
+      : (Math.abs(unit_sum) > 1e-18 ? (target_qsum - base_sum) / unit_sum : 0);
+    var q = new Float64Array(n);
+    for (var i = 0; i < n; i++) q[i] = q_base[i] + phi_target * q_unit[i];
+
+    if (Number.isFinite(conductor_entity.V_conductor)) {
+      var qsum = 0;
+      for (var i = 0; i < n; i++) qsum += q[i];
+      var correction = (qsum - target_qsum) / n;
+      for (var i = 0; i < n; i++) q[i] -= correction;
+    }
 
     // Собираем результат: [{x, y, q, sigma, ds, nx, ny}]
     var result = [];
@@ -184,50 +200,61 @@ var engine_info = (()=>{
 
   // ── Обновление BEM ──────────────────────────────────────────────────────
   var BEM_N = 48; // точек на проводник
+  var BEM_INTERACTION_PASSES = 3;
 
   function update_bem() {
     var point_charges = entities.filter(e => e.type === 'q');
-    bem_charges = {};
-    entities.forEach((e, i) => {
-      if (e.type !== 'p') return;
-      bem_charges[i] = solve_bem(e, point_charges, BEM_N);
-    });
+    var conductors = entities
+      .map((e, i) => ({ entity: e, index: i }))
+      .filter(item => item.entity.type === 'p');
+    var next_bem = {};
+
+    for (var pass = 0; pass < BEM_INTERACTION_PASSES; pass++) {
+      var prev_bem = next_bem;
+      next_bem = {};
+      conductors.forEach(item => {
+        var ext = point_charges.slice();
+        Object.keys(prev_bem).forEach(key => {
+          if (+key === item.index) return;
+          ext = ext.concat(prev_bem[key]);
+        });
+        next_bem[item.index] = solve_bem(item.entity, ext, BEM_N);
+      });
+    }
+
+    bem_charges = next_bem;
+  }
+
+  function add_field_from_charge(acc, source, x, y, min_d2) {
+    var dx = (x - source.x) * constants.scale;
+    var dy = (y - source.y) * constants.scale;
+    var d2 = dx*dx + dy*dy;
+    if (d2 < min_d2) return;
+    var d  = Math.sqrt(d2);
+    var em = constants.eps * source.q * constants.e / d2;
+    acc.ex += em * dx/d;
+    acc.ey += em * dy/d;
+    acc.p  += constants.eps * source.q * constants.e / d;
   }
 
   // ── Расчёт поля в точке (мировые координаты) ───────────────────────────
   function get_electric_field(x, y) {
-    var ex = 0, ey = 0, p = 0;
+    var acc = { ex: 0, ey: 0, p: 0 };
 
     // Точечные заряды
     entities.forEach(e => {
       if (e.type !== 'q') return;
-      var dx = (e.x - x) * constants.scale;
-      var dy = (e.y - y) * constants.scale;
-      var d2 = dx*dx + dy*dy;
-      if (d2 < 0.001) return;
-      var d  = Math.sqrt(d2);
-      var em = constants.eps * e.q * constants.e / d2;
-      ex += em * dx/d;
-      ey += em * dy/d;
-      p  += constants.eps * e.q * constants.e / d;
+      add_field_from_charge(acc, e, x, y, 0.001);
     });
 
     // BEM-заряды (индуцированные заряды на проводниках)
     Object.values(bem_charges).forEach(segs => {
       segs.forEach(s => {
-        var dx = (s.x - x) * constants.scale;
-        var dy = (s.y - y) * constants.scale;
-        var d2 = dx*dx + dy*dy;
-        if (d2 < 1e-6) return;
-        var d  = Math.sqrt(d2);
-        var em = constants.eps * s.q * constants.e / d2;
-        ex += em * dx/d;
-        ey += em * dy/d;
-        p  += constants.eps * s.q * constants.e / d;
+        add_field_from_charge(acc, s, x, y, 1e-6);
       });
     });
 
-    return { ex, ey, p };
+    return acc;
   }
 
   // ── Сетка поля для фона ────────────────────────────────────────────────

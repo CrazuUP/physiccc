@@ -254,8 +254,8 @@ function select_menu_item(i) {
 
   var history_html =
       '<div class="history-actions">' +
-      '<button type="button" class="history-btn" onclick="canvas_events.history.undo()" title="Отменить (Ctrl+Z)">↶ Undo</button>' +
-      '<button type="button" class="history-btn" onclick="canvas_events.history.redo()" title="Повторить (Ctrl+Y / Ctrl+Shift+Z)">↷ Redo</button>' +
+      '<button type="button" id="history_undo_btn" class="history-btn" onclick="canvas_events.history.undo()" title="Отменить (Ctrl+Z)">↶ Отменить</button>' +
+      '<button type="button" id="history_redo_btn" class="history-btn" onclick="canvas_events.history.redo()" title="Повторить (Ctrl+Y / Ctrl+Shift+Z)">↷ Повторить</button>' +
       '</div>';
 
   // Параметры инструмента
@@ -289,6 +289,7 @@ function select_menu_item(i) {
     left_menu.querySelectorAll('button').forEach(function(btn, idx) {
       btn.classList.toggle('active', idx === i);
     });
+    if (canvas_events.history) canvas_events.history.updateControls();
     menu.on_change.forEach(function(fn) { fn(); });
   });
 }

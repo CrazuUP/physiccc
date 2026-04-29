@@ -40,6 +40,12 @@ var canvas_events = {
     autosnapshotEveryMs: 100,
     lastAutosnapshotAt: 0,
     suspendPush: false,
+    updateControls: () => {
+      var undoBtn = document.getElementById('history_undo_btn');
+      var redoBtn = document.getElementById('history_redo_btn');
+      if (undoBtn) undoBtn.disabled = canvas_events.history.past.length === 0;
+      if (redoBtn) redoBtn.disabled = canvas_events.history.future.length === 0;
+    },
     serializeState: () => ({
       entities: JSON.parse(JSON.stringify(engine_info.get_entities())),
       constants: JSON.parse(JSON.stringify(engine_info.constants)),
@@ -57,6 +63,13 @@ var canvas_events = {
         canvas_events.history.past.shift();
       canvas_events.history.future = [];
       canvas_events.history.lastAutosnapshotAt = Date.now();
+      canvas_events.history.updateControls();
+    },
+    reset: () => {
+      canvas_events.history.past = [];
+      canvas_events.history.future = [];
+      canvas_events.history.lastAutosnapshotAt = Date.now();
+      canvas_events.history.updateControls();
     },
     maybe_autosnapshot: () => {
       if (canvas_events.history.suspendPush) return;
@@ -79,16 +92,23 @@ var canvas_events = {
       canvas_events.after_scene_change();
       canvas_events.need_repaint();
       canvas_events.history.suspendPush = false;
+      canvas_events.history.updateControls();
     },
     undo: () => {
-      if (!canvas_events.history.past.length) return;
+      if (!canvas_events.history.past.length) {
+        canvas_events.history.updateControls();
+        return;
+      }
       var current = canvas_events.history.serializeState();
       var target = canvas_events.history.past.pop();
       canvas_events.history.future.push(current);
       canvas_events.history.applySnapshot(target);
     },
     redo: () => {
-      if (!canvas_events.history.future.length) return;
+      if (!canvas_events.history.future.length) {
+        canvas_events.history.updateControls();
+        return;
+      }
       var current = canvas_events.history.serializeState();
       var target = canvas_events.history.future.pop();
       canvas_events.history.past.push(current);
@@ -543,6 +563,8 @@ _onload.push(() => {
 
   var isDragging = false;
   var dragStart = { x: 0, y: 0 };
+  var dragHistorySnapshot = null;
+  var lastWheelHistoryAt = 0;
   var startClick = { x: 0, y: 0, is_click: true };
   var cursorWorld = { x: 0, y: 0 };
   var mousePos = document.getElementById('mouse-pos');
@@ -552,6 +574,7 @@ _onload.push(() => {
     isDragging = true;
     startClick = { x: ev.offsetX, y: ev.offsetY, is_click: true };
     dragStart = getTransformed(ev.offsetX, ev.offsetY);
+    dragHistorySnapshot = canvas_events.history.serializeState();
   }
 
   function onMouseMove(ev) {
@@ -574,13 +597,21 @@ _onload.push(() => {
     if (isDragging && startClick.is_click) {
       var t = getTransformed(startClick.x, startClick.y);
       canvas_events.on_click.forEach(fn => fn(startClick.x, startClick.y, t.x, t.y));
+    } else if (isDragging && dragHistorySnapshot) {
+      canvas_events.history.push(dragHistorySnapshot);
     }
     isDragging = false;
+    dragHistorySnapshot = null;
     if (!runner.running) engine_info.change();
     canvas_events.need_repaint();
   }
 
   function onWheel(ev) {
+    var now = Date.now();
+    if (now - lastWheelHistoryAt > 350) {
+      canvas_events.history.push();
+      lastWheelHistoryAt = now;
+    }
     var zoom = Math.pow(Math.E, -ev.deltaY * Math.log(1.1) / 100);
     ctx.translate(cursorWorld.x, cursorWorld.y);
     ctx.scale(zoom, zoom);
@@ -624,7 +655,7 @@ _onload.push(() => {
   canvas.addEventListener('touchcancel', e => { Object.assign(e, t2o(e, e.changedTouches[0])); onMouseUp(e); }, { passive: false });
 
   canvas_events.sync_layer_ui();
-  canvas_events.history.push();
+  canvas_events.history.reset();
   canvas_events.need_repaint();
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
@@ -636,6 +667,6 @@ _onload.push(() => {
       size: 14
     });
     engine_info.change();
-    canvas_events.history.push();
+    canvas_events.history.reset();
   }, 200);
 });
