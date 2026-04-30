@@ -130,6 +130,13 @@ _onload.push(() => {
   const colorbar_pos_mid_el = document.getElementById('potential_colorbar_pos_mid');
   const colorbar_max_el = document.getElementById('potential_colorbar_max');
   const colorbar_range_el = document.getElementById('potential_colorbar_range');
+  const colorbar_tick_els = [
+    colorbar_min_el,
+    colorbar_neg_mid_el,
+    colorbar_mid_el,
+    colorbar_pos_mid_el,
+    colorbar_max_el
+  ];
   ctx.imageSmoothingEnabled = false;
 
   canvas_events.get_canvas = () => [canvas, ctx];
@@ -166,9 +173,14 @@ _onload.push(() => {
     return v.toExponential(1);
   }
 
-  function formatPotentialTick(v) {
+  function formatPotentialTick(v, zeroEpsilon) {
+    if (Math.abs(v) <= (zeroEpsilon || 0)) v = 0;
     var sign = v > 0 ? '+' : '';
     return sign + formatMetricCompact(v);
+  }
+
+  function formatPotentialTickWithUnit(v, zeroEpsilon) {
+    return formatPotentialTick(v, zeroEpsilon) + '\u00a0\u0412';
   }
 
   function getPotentialColor(pn, alpha) {
@@ -186,21 +198,76 @@ _onload.push(() => {
     return `rgba(${c.r},${c.g},${c.b},${(c.a / 255).toFixed(3)})`;
   }
 
-  function updateColorbar(p_max) {
+  function getPotentialScale(field) {
+    var p_min = Infinity;
+    var p_max = -Infinity;
+    field.forEach(item => {
+      var p = item && item.feeld ? item.feeld.p : NaN;
+      if (!Number.isFinite(p)) return;
+      p_min = Math.min(p_min, p);
+      p_max = Math.max(p_max, p);
+    });
+
+    if (!Number.isFinite(p_min) || !Number.isFinite(p_max)) {
+      p_min = -1;
+      p_max = 1;
+    }
+
+    var p_abs_max = Math.max(Math.abs(p_min), Math.abs(p_max), field._p_max || 0, 1e-12);
+    if (Math.abs(p_max - p_min) < 1e-12) {
+      p_min -= p_abs_max * 0.5;
+      p_max += p_abs_max * 0.5;
+    }
+
+    return {
+      min: p_min,
+      max: p_max,
+      absMax: p_abs_max
+    };
+  }
+
+  function buildPotentialGradient(scale) {
+    var stops = [];
+    var span = scale.max - scale.min;
+    for (var i = 0; i <= 12; i++) {
+      var pos = i / 12;
+      var p = scale.min + span * pos;
+      stops.push(`${getPotentialColorCss(p / scale.absMax, 220)} ${(pos * 100).toFixed(2)}%`);
+    }
+    return `linear-gradient(90deg, ${stops.join(', ')})`;
+  }
+
+  function setPotentialColorbarVisible(visible) {
+    if (!colorbar_el) return;
+    colorbar_el.classList.toggle('visible', visible);
+    if (document.body) document.body.classList.toggle('potential-colorbar-visible', visible);
+  }
+
+  function updateColorbar(scale) {
     if (!colorbar_el) return;
     var visible = canvas_events.layers.potential_map;
-    colorbar_el.classList.toggle('visible', visible);
+    setPotentialColorbarVisible(visible);
     if (!visible) return;
+
+    var span = scale.max - scale.min;
+    var zeroEpsilon = scale.absMax * 1e-9;
+    colorbar_el.style.setProperty('--potential-scale', buildPotentialGradient(scale));
     colorbar_el.style.setProperty(
-      '--potential-scale',
-      `linear-gradient(90deg, ${getPotentialColorCss(-1, 220)} 0%, ${getPotentialColorCss(0, 220)} 50%, ${getPotentialColorCss(1, 220)} 100%)`
+      '--potential-zero-pos',
+      `${clamp((0 - scale.min) / span, 0, 1) * 100}%`
     );
-    if (colorbar_min_el) colorbar_min_el.textContent = formatPotentialTick(-p_max);
-    if (colorbar_neg_mid_el) colorbar_neg_mid_el.textContent = formatPotentialTick(-p_max / 2);
-    if (colorbar_mid_el) colorbar_mid_el.textContent = '0';
-    if (colorbar_pos_mid_el) colorbar_pos_mid_el.textContent = formatPotentialTick(p_max / 2);
-    if (colorbar_max_el) colorbar_max_el.textContent = formatPotentialTick(p_max);
-    if (colorbar_range_el) colorbar_range_el.textContent = '±' + formatMetricCompact(p_max) + ' В';
+    colorbar_el.style.setProperty(
+      '--potential-zero-opacity',
+      scale.min <= 0 && scale.max >= 0 ? '1' : '0'
+    );
+    colorbar_tick_els.forEach((el, i) => {
+      if (!el) return;
+      el.textContent = formatPotentialTickWithUnit(scale.min + span * i / 4, zeroEpsilon);
+    });
+    if (colorbar_range_el) {
+      colorbar_range_el.textContent =
+        formatPotentialTickWithUnit(scale.min, zeroEpsilon) + ' ... ' + formatPotentialTickWithUnit(scale.max, zeroEpsilon);
+    }
   }
 
   function getTransformed(ox, oy) {
@@ -331,7 +398,7 @@ _onload.push(() => {
   canvas_events.sync_layer_ui = () => {
     var sigmaLegend = document.getElementById('sigma_legend');
     if (sigmaLegend) sigmaLegend.classList.toggle('visible', !!canvas_events.layers.sigma);
-    if (colorbar_el) colorbar_el.classList.toggle('visible', !!canvas_events.layers.potential_map);
+    setPotentialColorbarVisible(!!canvas_events.layers.potential_map);
   };
 
   canvas_events.after_scene_change = () => {
@@ -364,8 +431,9 @@ _onload.push(() => {
 
     var cols = N + 1;
     var rows = N + 1;
-    var p_max = field._p_max || 1;
-    updateColorbar(p_max);
+    var potentialScale = getPotentialScale(field);
+    var p_max = potentialScale.absMax;
+    updateColorbar(potentialScale);
 
     if (canvas_events.layers.potential_map) {
       var imgD = _.createImageData(cols, rows);

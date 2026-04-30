@@ -408,10 +408,12 @@ html, body {
     rgba(197, 98, 82, 0.92) 78%,
     rgba(171, 55, 62, 0.92) 100%
   );
+  --potential-zero-pos: 50%;
+  --potential-zero-opacity: 1;
   position: fixed;
   bottom: calc(22px + 16px);
   left: calc(56px + 24px);
-  width: min(460px, calc(75vw - 88px));
+  width: min(520px, calc(75vw - 88px));
   min-width: 240px;
   max-width: calc(100vw - 116px);
   background: rgba(242,237,230,0.88);
@@ -426,10 +428,15 @@ html, body {
   display: none;
 }
 #potential_colorbar.visible { display: block; }
+
+body.potential-colorbar-visible #sigma_legend {
+  bottom: calc(22px + 104px);
+}
+
 .potential_colorbar_title {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   font-size: 11px;
   margin-bottom: 6px;
@@ -440,6 +447,9 @@ html, body {
   opacity: 0.86;
   font-family: 'JetBrains Mono', 'Fira Mono', monospace;
   color: var(--text);
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
 }
 .potential_colorbar_scale {
   position: relative;
@@ -452,13 +462,14 @@ html, body {
 .potential_colorbar_scale::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: var(--potential-zero-pos);
   top: -2px;
   width: 1px;
   height: calc(100% + 4px);
   transform: translateX(-50%);
   background: rgba(245, 240, 232, 0.9);
   box-shadow: 0 0 0 1px rgba(30,20,15,0.16);
+  opacity: var(--potential-zero-opacity);
 }
 .potential_colorbar_scale::before {
   content: '';
