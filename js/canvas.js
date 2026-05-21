@@ -163,6 +163,28 @@ _onload.push(() => {
     return (v>0?'+':'')+fmtCompact(v)+'\u00a0V';
   }
 
+  function cssVar(name, fallback) {
+    var value=getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function getCanvasPalette() {
+    return {
+      bg: cssVar('--canvas-bg','#1a1f2e'),
+      fieldArrowRgb: cssVar('--canvas-field-arrow-rgb','255,255,255'),
+      forceLine: cssVar('--canvas-force-line','rgba(255,255,255,0.32)'),
+      conductorStroke: cssVar('--canvas-conductor-stroke','#8a8078'),
+      conductorFill: cssVar('--canvas-conductor-fill','rgba(160,150,130,0.12)'),
+      conductorSelectedStroke: cssVar('--canvas-conductor-selected-stroke','#e8e0d0'),
+      conductorSelectedFill: cssVar('--canvas-conductor-selected-fill','rgba(220,200,170,0.18)'),
+      conductorRingFill: cssVar('--canvas-conductor-ring-fill','rgba(160,150,130,0.15)'),
+      conductorRingSelectedFill: cssVar('--canvas-conductor-ring-selected-fill','rgba(220,200,170,0.25)'),
+      chargeStroke: cssVar('--canvas-charge-stroke','rgba(0,0,0,0.5)'),
+      chargeSelectedStroke: cssVar('--canvas-charge-selected-stroke','#ffffff'),
+      chargeMark: cssVar('--canvas-charge-mark','#ffffff'),
+    };
+  }
+
   // ── Цвет потенциала ───────────────────────────────────────────────────────
   function potColor(pn, alpha) {
     pn = clamp(pn, -1, 1);
@@ -278,6 +300,7 @@ _onload.push(() => {
     if(!field.length) return;
     var cols=N+1, rows=N+1;
     var scale=getPotentialScale(field);
+    var pal=getCanvasPalette();
     updateColorbar(scale);
 
     // ─ Карта потенциала ─
@@ -292,7 +315,7 @@ _onload.push(() => {
       _.putImageData(imgD,0,0);
       _.drawImage(canvas,0,0,cols,rows,0,0,canvas.width,canvas.height);
     } else {
-      _.fillStyle='#1a1f2e';
+      _.fillStyle=pal.bg;
       _.fillRect(0,0,canvas.width,canvas.height);
     }
 
@@ -345,7 +368,7 @@ _onload.push(() => {
         var em=emags[idx]; if(em<1e-30) return;
         var t=Math.log10(1+em/emax*9);
         var alpha=Math.round(40+t*215);
-        _.strokeStyle=`rgba(255,255,255,${(alpha/255).toFixed(2)})`;
+        _.strokeStyle=`rgba(${pal.fieldArrowRgb},${(alpha/255).toFixed(2)})`;
         _.lineWidth=1;
         var enx=f.feeld.ex/em, eny=f.feeld.ey/em;
         var xl=enx*t*alen, yl=eny*t*alen;
@@ -414,11 +437,12 @@ _onload.push(() => {
     var px=1/state.size;
     var many=engine_info.get_entities().length>1200;
     var bounds=worldBounds(state);
+    var pal=getCanvasPalette();
 
     // ─ Силовые линии ─
     if(canvas_events.layers.force_lines) {
       _.save();
-      _.strokeStyle='rgba(255,255,255,0.32)';
+      _.strokeStyle=pal.forceLine;
       _.lineWidth=Math.max(px*1.5,1.1*px);
       var seeds=getFLseeds(px);
       var stride=Math.max(1,Math.ceil(seeds.length/90));
@@ -452,17 +476,17 @@ _onload.push(() => {
       engine_info.get_entities().map((e,i)=>[e,i]).filter(d=>d[0].type==='p').forEach(([e,ind])=>{
         var sel=ind===canvas_events.selected_entity;
         _.lineWidth=2*px;
-        _.strokeStyle=sel?'#e8e0d0':'#8a8078';
-        _.fillStyle=sel?'rgba(220,200,170,0.18)':'rgba(160,150,130,0.12)';
+        _.strokeStyle=sel?pal.conductorSelectedStroke:pal.conductorStroke;
+        _.fillStyle=sel?pal.conductorSelectedFill:pal.conductorFill;
         if(e.shape==='rectangle'){
           _.fillRect(e.data[0],e.data[1],e.data[2],e.data[3]);
           _.strokeRect(e.data[0],e.data[1],e.data[2],e.data[3]);
         } else if(e.shape==='ring'){
           var mid=(e.data[2]+e.data[3])/2;
           _.lineWidth=e.data[3]-e.data[2];
-          _.strokeStyle=sel?'rgba(220,200,170,0.25)':'rgba(160,150,130,0.15)';
+          _.strokeStyle=sel?pal.conductorRingSelectedFill:pal.conductorRingFill;
           _.beginPath(); _.arc(e.data[0],e.data[1],mid,0,2*Math.PI); _.stroke();
-          _.lineWidth=2*px; _.strokeStyle=sel?'#e8e0d0':'#8a8078';
+          _.lineWidth=2*px; _.strokeStyle=sel?pal.conductorSelectedStroke:pal.conductorStroke;
           _.beginPath(); _.arc(e.data[0],e.data[1],e.data[2],0,2*Math.PI); _.stroke();
           _.beginPath(); _.arc(e.data[0],e.data[1],e.data[3],0,2*Math.PI); _.stroke();
         } else if(e.shape==='circle'){
@@ -477,13 +501,13 @@ _onload.push(() => {
       engine_info.get_entities().map((e,i)=>[e,i]).filter(d=>d[0].type==='q').forEach(([e,ind])=>{
         var sel=ind===canvas_events.selected_entity;
         _.lineWidth=2*px;
-        _.strokeStyle=sel?'#ffffff':'rgba(0,0,0,0.5)';
+        _.strokeStyle=sel?pal.chargeSelectedStroke:pal.chargeStroke;
         if(!many){ _.shadowColor=e.q>=0?'rgba(220,80,80,0.7)':'rgba(80,120,220,0.7)'; _.shadowBlur=8*px; }
         _.fillStyle=e.q>=0?'#e84040':'#4070e0';
         if(many){ _.fillRect(e.x-10*px,e.y-10*px,20*px,20*px); }
         else { _.beginPath(); _.arc(e.x,e.y,11*px,0,2*Math.PI); _.fill(); _.stroke(); }
         _.shadowBlur=0;
-        _.fillStyle='#ffffff';
+        _.fillStyle=pal.chargeMark;
         if(e.q>=0) _.fillRect(e.x-px,e.y-5.5*px,2*px,11*px);
         _.fillRect(e.x-5.5*px,e.y-px,11*px,2*px);
       });
