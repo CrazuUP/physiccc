@@ -11,6 +11,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="description" content="Симулятор электростатических взаимодействий и проводников">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <script>
+    (function() {
+      var stored = null;
+      try { stored = window.localStorage.getItem('ephysics-theme'); } catch (e) {}
+      var systemLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      var theme = stored || (systemLight ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#eef2f7' : '#0f1117');
+    })();
+  </script>
   <link rel="stylesheet" href="front.css">
   <script>_onload = [];</script>
   <script src="js/menu.js"></script>
