@@ -154,12 +154,15 @@ var engine_info = (()=>{
   }
 
   var feelds_in_line=10, canvas_electric_field=[];
+  var bem_dirty = true;   // флаг: нужно пересчитать BEM
+  var bem_skip  = 0;      // счётчик пропусков
 
   function change(){
     var [canvas,ctx]=canvas_events.get_canvas();
     var state=canvas_events.get_canvas_state();
     if(!canvas||!ctx||!state) return;
     update_bem();
+    bem_dirty = false;
 
     var xx=1000;
     if(entities.length>50)   xx=500;
@@ -190,6 +193,15 @@ var engine_info = (()=>{
     var dt=dt_real*constants.t;
     var conds=entities.filter(e=>e.type==='p');
 
+    // BEM пересчитываем не каждый кадр — дорогая операция O(N²)
+    // При наличии проводников: каждые 4 шага (незаметно при 60fps)
+    bem_skip++;
+    if(bem_dirty || bem_skip >= 4){
+      update_bem();
+      bem_dirty = false;
+      bem_skip  = 0;
+    }
+
     entities.forEach((e,i)=>{
       if(e.type!=='q'||e.is_const) return;
       var fx=0,fy=0;
@@ -212,9 +224,14 @@ var engine_info = (()=>{
 
     entities.forEach(e=>{
       if(e.type!=='q'||e.is_const) return;
+
       var nvx=e.vx+(e._ax||0)*dt, nvy=e.vy+(e._ay||0)*dt;
       var v2=nvx*nvx+nvy*nvy;
-      if(v2>1e12){var k=1e6/Math.sqrt(v2);nvx*=k;nvy*=k;}
+      if(v2>1e12){var k=1e6/Math.sqrt(v2);
+        nvx*=k;nvy*=k;}
+
+
+
       var nx=e.x+nvx*dt/constants.scale, ny=e.y+nvy*dt/constants.scale;
       var was_inside=conds.some(c=>in_shape[c.shape](c.data,e.x,e.y));
       if(was_inside){
@@ -238,9 +255,10 @@ var engine_info = (()=>{
     constants,
     run:                engine_iteration,
     get_entities:       ()=>entities,
-    set_entities:       e=>{entities=e;bem_charges={};},
+    set_entities:       e=>{entities=e;bem_charges={};bem_dirty=true;bem_skip=0;},
     electric_field:     get_electric_field,
     change,
+    mark_bem_dirty:     ()=>{bem_dirty=true;bem_skip=0;},
     get_electric_field: ()=>canvas_electric_field,
     get_feelds_in_line: ()=>feelds_in_line,
     get_bem_charges:    ()=>bem_charges,
