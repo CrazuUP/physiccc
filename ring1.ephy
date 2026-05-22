@@ -1,0 +1,7 @@
+{
+  "e": [
+    {"type": "p", "shape": "ring", "data": [0, 0, 3, 5], "Q_total": 0},
+    {"type": "q", "is_const": true, "q": 2000, "x": -8, "y": 0, "vx": 0, "vy": 0, "m": 10, "in_conductor": false}
+  ],
+  "canvas": {"x": 0, "y": 0, "size": 18}
+}

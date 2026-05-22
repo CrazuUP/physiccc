@@ -1,0 +1,31 @@
+{
+  "e": [
+    {
+      "type": "q",
+      "is_const": false,
+      "q": 2000,
+      "x": -4,
+      "y": 0,
+      "vx": 0,
+      "vy": 0,
+      "m": 100000,
+      "in_conductor": false
+    },
+    {
+      "type": "q",
+      "is_const": false,
+      "q": -2000,
+      "x": 4,
+      "y": 0,
+      "vx": 0,
+      "vy": 0,
+      "m": 100000,
+      "in_conductor": false
+    }
+  ],
+  "canvas": {
+    "x": 450,
+    "y": 300,
+    "size": 35
+  }
+}
