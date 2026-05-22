@@ -47,7 +47,7 @@ var menu_info = [
     },
     // 2: − заряд
     {
-        src:'images/minus.jpg', title:'Отрицательный заряд −',
+        src:'images/minus.png', title:'Отрицательный заряд −',
         html:'|q = &minus;<input type="text" id="menu_qn_q" value="1000"><i> e</i>|Масса: <input type="text" id="menu_qn_m" value="10">|<label><input type="checkbox" id="menu_qn_const"> фиксированный</label>|Кол-во: <input type="text" id="menu_qn_n" value="1">',
         save_id:['menu_qn_q','menu_qn_m','menu_qn_n'],
         canvas_click_check_float_id:['menu_qn_q','menu_qn_m','menu_qn_n'],
@@ -134,7 +134,8 @@ function toggle_app_theme() {
     set_app_theme(get_app_theme()==='dark'?'light':'dark');
 }
 
-_onload.push(function(){ set_app_theme(get_app_theme(), false); });
+// Тема зафиксирована как тёмная — светлая убрана
+_onload.push(function(){ set_app_theme('dark', true); });
 
 // ── Слои ─────────────────────────────────────────────────────────────────────
 var layer_menu_specs = [
@@ -250,10 +251,6 @@ function select_menu_item(i) {
         '<button type="button" id="history_redo_btn" class="history-btn" onclick="canvas_events.history.redo()" title="Повторить (Ctrl+Y)">↷</button>'+
         '</div>';
 
-    var theme_html=
-        '<div class="dline"></div>'+
-        '<button type="button" id="theme_toggle_btn" class="theme-toggle-btn" onclick="toggle_app_theme()" title="Светлая тема" aria-label="Светлая тема"></button>';
-
     var tool_html=item.html?item.html.replace(/\|/g,'<div class="dline"></div>'):'';
 
     var speeds=[0,.25,.5,1,2,3,4,5,10,25,50,75,100,250,500,750,1000,2500,5000,10000,100000];
@@ -264,7 +261,7 @@ function select_menu_item(i) {
 
     top_menu.innerHTML=
         `<img src="${item.src}" title="${item.title}" style="opacity:.85">`+
-        tool_html+history_html+layers_html+theme_html+
+        tool_html+history_html+layers_html+
         `<select id="speed" onchange="speed_change()" title="Скорость симуляции">${speed_opts}</select>`;
 
     setTimeout(()=>{
@@ -273,7 +270,6 @@ function select_menu_item(i) {
         if(canvas_events.history) canvas_events.history.updateControls();
         render_layers_panel();
         update_layers_button_state();
-        update_theme_button();
         menu.on_change.forEach(fn=>fn());
     });
 }
@@ -308,11 +304,11 @@ function upload_file(cb) {
 }
 
 var import_examples=[
-    {file:'adron.ephy',  label:'Адронный коллайдер'},
-    {file:'cond.ephy',   label:'Конденсатор'},
+    {file:'adron.ephy',  label:'Эксперимент Конденсатор'},
+    {file:'cond.ephy',   label:'Эксперимент 2 Клетка фарадея'},
     {file:'kek.ephy',    label:'Красота'},
     {file:'ring1.ephy',  label:'Кольцо'},
-    {file:'ring2.ephy',  label:'Кольцо 2'},
+    {file:'ring.ephy',  label:'Эксперимент 3, Столкновение'},
     {file:null,          label:'Загрузить файл…'},
 ];
 
