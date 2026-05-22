@@ -50,7 +50,7 @@ var right_menu_h = {
             var after=canvas_events.history.serialize();
             if(!canvas_events.history.equal(before,after)) canvas_events.history.push(before);
             engine_info.change();
-            canvas_events.after_scene_change();
+            // НЕ вызываем after_scene_change — она сбрасывает right_menu_h.id и выбор.
             canvas_events.need_repaint();
         }
     },
