@@ -337,8 +337,8 @@ _onload.push(() => {
       var levels=[];
       for(var li=-8;li<=8;li++) if(li!==0) levels.push(scale.absMax*li/8);
       levels.forEach(lv=>{
-        _.strokeStyle=potColorCss(lv/scale.absMax,170);
-        _.lineWidth=1.2;
+        _.strokeStyle=potColorCss(lv/scale.absMax,240);  // было 170 — ярче
+        _.lineWidth=2.0;                                    // было 1.2 — толще
         for(var y=0;y<rows-1;y++){
           for(var x=0;x<cols-1;x++){
             var i00=y*cols+x,i10=i00+1,i01=i00+cols,i11=i01+1;
@@ -360,20 +360,20 @@ _onload.push(() => {
 
     // ─ Стрелки E ─
     if(canvas_events.layers.field_arrows) {
-      var aw=canvas.width/N*0.36, ah=canvas.height/N*0.36;
+      var aw=canvas.width/N*0.54, ah=canvas.height/N*0.54;   // было 0.36 — стрелки крупнее
       var alen=Math.min(aw,ah);
       var emags=field.map(f=>Math.hypot(f.feeld.ex,f.feeld.ey));
       var emax=Math.max(...emags)||1;
       field.forEach((f,idx)=>{
         var em=emags[idx]; if(em<1e-30) return;
         var t=Math.log10(1+em/emax*9);
-        var alpha=Math.round(40+t*215);
+        var alpha=Math.round(90+t*165);   // минимальная прозрачность выше: было 40
         _.strokeStyle=`rgba(${pal.fieldArrowRgb},${(alpha/255).toFixed(2)})`;
-        _.lineWidth=1;
+        _.lineWidth=1.6;                   // было 1
         var enx=f.feeld.ex/em, eny=f.feeld.ey/em;
         var xl=enx*t*alen, yl=eny*t*alen;
         var x0=f.x-xl*.5,y0=f.y-yl*.5,x1=f.x+xl*.5,y1=f.y+yl*.5;
-        var hd=Math.max(2.5,t*alen*.22);
+        var hd=Math.max(3.5,t*alen*.28);  // наконечник крупнее: было .22
         _.beginPath();
         _.moveTo(x0,y0); _.lineTo(x1,y1);
         _.lineTo(x1-enx*hd*.8+eny*hd*.3, y1-eny*hd*.8-enx*hd*.3);
@@ -572,21 +572,37 @@ _onload.push(() => {
     if(!runner.running) engine_info.change();
     canvas_events.need_repaint();
   }
-  function onKey(ev){
-    var tgt=ev.target;
-    if(tgt&&(tgt.tagName==='INPUT'||tgt.tagName==='TEXTAREA'||tgt.tagName==='SELECT'||tgt.isContentEditable)) return;
-    if(!ev.ctrlKey) return;
-    var k=ev.key.toLowerCase();
-    if(k==='z'&&!ev.shiftKey){ ev.preventDefault(); canvas_events.history.undo(); }
-    else if(k==='y'||(k==='z'&&ev.shiftKey)){ ev.preventDefault(); canvas_events.history.redo(); }
+  function onWheel(ev) {
+    // Блокируем браузерный zoom при щипке на тачпаде (ctrlKey=true — стандарт для pinch)
+    // и обычный скролл страницы над канвасом — всё управление отдаём канвасу
+    ev.preventDefault();
+
+    var now = Date.now();
+    if (now - lastWheelAt > 350) { canvas_events.history.push(); lastWheelAt = now; }
+
+    var delta;
+    if (ev.ctrlKey) {
+      // Пинч тачпада: браузер даёт deltaY в диапазоне ~±1..10, нужен отдельный коэф
+      delta = ev.deltaY * 3;
+    } else {
+      // Обычное колёсико мыши: deltaY ~±100 за шаг
+      delta = ev.deltaY;
+    }
+
+    var z = Math.pow(Math.E, -delta * Math.log(1.1) / 100);
+    ctx.translate(worldCursor.x, worldCursor.y);
+    ctx.scale(z, z);
+    ctx.translate(-worldCursor.x, -worldCursor.y);
+    if (!runner.running) engine_info.change();
+    canvas_events.need_repaint();
   }
 
-  canvas.addEventListener('mousedown', onDown, {passive:true});
-  canvas.addEventListener('mousemove', onMove, {passive:true});
-  canvas.addEventListener('mouseup',   onUp,   {passive:true});
-  canvas.addEventListener('mouseleave',onUp,   {passive:true});
-  canvas.addEventListener('wheel',     onWheel,{passive:true});
-  window.addEventListener('keydown',   onKey);
+  canvas.addEventListener('mousedown',  onDown,  { passive: true  });
+  canvas.addEventListener('mousemove',  onMove,  { passive: true  });
+  canvas.addEventListener('mouseup',    onUp,    { passive: true  });
+  canvas.addEventListener('mouseleave', onUp,    { passive: true  });
+  canvas.addEventListener('wheel',      onWheel, { passive: false }); // ← было true
+  window.addEventListener('keydown',    onKey);
 
   function t2o(e,touch){var r=e.target.getBoundingClientRect();return{offsetX:(touch.clientX-r.x)/r.width*e.target.offsetWidth,offsetY:(touch.clientY-r.y)/r.height*e.target.offsetHeight};}
   canvas.addEventListener('touchstart', e=>{Object.assign(e,t2o(e,e.touches[0]));onDown(e);},{passive:false});
